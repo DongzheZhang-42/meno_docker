@@ -1,0 +1,6 @@
+outputs/
+manifests/
+data/
+__pycache__/
+*.pyc
+.cache_*/

@@ -1,0 +1,41 @@
+# PEFT (adapter) training config for FastConformer hybrid streaming model.
+# Hyperparameters live here so the script stays small.
+
+base_model: outputs/pretrained/model.nemo   # produced by download_model.py
+
+manifests:
+  train: manifests/train.json
+  val:   manifests/val.json
+
+adapter:
+  # NeMo's LinearAdapter (Houlsby-style bottleneck). For pure-LoRA semantics,
+  # set type: lora (NeMo 1.23+ has a LoRA adapter cfg for ASR linear projections;
+  # if your NeMo version errors on this, leave type: linear).
+  type: linear           # one of: linear, lora
+  name: peft_whisper
+  module: encoder        # 'encoder' adds adapter to every Conformer block
+  dim: 64                # bottleneck rank (LoRA r, or Houlsby dim)
+  dropout: 0.1
+
+train:
+  batch_size: 8
+  num_workers: 4
+  max_epochs: 10
+  precision: bf16-mixed
+  accumulate_grad_batches: 1
+  gradient_clip_val: 1.0
+
+optim:
+  name: adamw
+  lr: 5.0e-4             # LoRA-class methods tolerate ~10x higher LR than full FT
+  weight_decay: 0.01
+  sched:
+    name: CosineAnnealing
+    warmup_steps: 200
+    min_lr: 1.0e-6
+
+output:
+  dir: outputs/peft
+  save_top_k: 2
+  monitor: val_wer
+  monitor_mode: min
